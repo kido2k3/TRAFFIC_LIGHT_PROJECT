@@ -5,10 +5,10 @@
  *      Author: HP
  */
 
-#ifndef INC_BUTTON_H_
-#define INC_BUTTON_H_
+#ifndef INC_MY_BUTTON_H_
+#define INC_MY_BUTTON_H_
 
-#include"port.h"
+#include"my_define.h"
 #include<stdint.h>
 
 
@@ -18,4 +18,4 @@ bool is_button_pressed(unsigned i);
 bool is_button_long_pressed(unsigned i);
 void button_init(void);
 
-#endif /* INC_BUTTON_H_ */
+#endif /* INC_MY_BUTTON_H_ */

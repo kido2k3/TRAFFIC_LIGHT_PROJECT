@@ -9,7 +9,7 @@
 #define SEGMENT_LED_H_
 
 #include <stdint.h>
-#include "port.h"
+#include "my_define.h"
 
 
 void scan7SEG(void);

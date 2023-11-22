@@ -5,10 +5,9 @@
  *      Author: HP
  */
 
-#include "my_button.h"
+#include <my_button.h>
 
-
-#define NUMBER_OF_BUTTON 	1
+#define NUMBER_OF_BUTTON 	3
 
 #define RELEASE				1
 #define PRESSED				0
@@ -43,8 +42,12 @@ void button_init(void) {
 		button[i].timer = LONG_PRESSED_TIME;
 	}
 	// port and pin were matched by hand
-	button[0].port = PORT_BUTTON1;
-	button[0].pin = PIN_BUTTON1;
+	button[0].port = BUTTON1_PORT;
+	button[0].pin = BUTTON1;
+	button[1].port = BUTTON2_PORT;
+	button[1].pin = BUTTON2;
+	button[2].port = BUTTON3_PORT;
+	button[2].pin = BUTTON3;
 }
 /*
  * @brief:	read the value of all buttons

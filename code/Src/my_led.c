@@ -5,7 +5,7 @@
  *      Author: HP
  */
 
-#include <led.h>
+#include <my_led.h>
 
 #define NUMBER_OF_7_LED 4
 
