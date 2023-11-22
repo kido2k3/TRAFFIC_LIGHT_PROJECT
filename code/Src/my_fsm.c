@@ -53,9 +53,18 @@ unsigned yellow_time_buffer = YELLOW_TIME_INIT;
 unsigned traffic_light_timer1 = RED_TIME_INIT;
 unsigned traffic_light_timer2 = GREEN_TIME_INIT;
 
+bool flag_toggle_led = 1;
+bool flag_countdown = 1;
+bool flag_increase_over_time = 1;
+
 bool button0_fsm(void);
 bool button1_fsm(void);
 bool button2_fsm(void);
+
+void task_toggle_led(void);
+//bool task_scan7seg(void);
+void task_countdown_1sec(void);
+void task_increase_over_time(void);
 /*
  * @brief: 	finite state machine to control behavior of traffic light
  * @para:	none
@@ -113,6 +122,11 @@ void traffic_light_fsm(void)
  * @retval:	none*/
 void fsm_led(void)
 {
+	// transition state in 0.25s
+	if(flag_toggle_led){
+		flag_toggle_led = 0;
+		sch_add_task(task_toggle_led, TOGGLE_TIME, 0);
+	}
 	switch (led_st)
 	{
 	case ON:
@@ -136,22 +150,10 @@ void fsm_led(void)
 		default:
 			break;
 		}
-		// transition state in 0.25s
-		if (!is_timer_on(3))
-		{
-			led_st = OFF;
-			set_timer(3, TOGGLE_TIME);
-		}
 		break;
 	case OFF:
 		control_traffic_light(0, 0, 0, 0);
 		control_traffic_light(1, 0, 0, 0);
-		// transition state in 0.25s
-		if (!is_timer_on(3))
-		{
-			led_st = ON;
-			set_timer(3, TOGGLE_TIME);
-		}
 	}
 }
 /**
@@ -194,20 +196,7 @@ void increase_value(void)
  */
 void fsm(void)
 {
-	// scan 4 7-seg leds with 50ms
-	if (!is_timer_on(0))
-	{
-		if (light_st != TRAFFIC_LIGHT || red_time == green_time + yellow_time)
-		{
-			scan7SEG();
-		}
-		else
-		{
-			off_all7led();
-		}
-		set_timer(0, SCAN_7SEGLED_TIME);
-	}
-
+	// scan 4 seven-seg leds with 50ms
 	switch (light_st)
 	{
 	case TRAFFIC_LIGHT:
@@ -220,13 +209,9 @@ void fsm(void)
 		else
 		{
 			// decrease timer every 1s
-			if (!is_timer_on(1))
-			{
-				if (traffic_light_timer1 > 0)
-					traffic_light_timer1--;
-				if (traffic_light_timer2 > 0)
-					traffic_light_timer2--;
-				set_timer(1, ONE_SECOND);
+			if(flag_countdown == 1){
+				flag_countdown = 0;
+				sch_add_task(task_countdown_1sec, ONE_SECOND, 0);
 			}
 			traffic_light_fsm();
 		}
@@ -313,10 +298,10 @@ void fsm(void)
 		{
 			update_led_buf(green_time_buffer, 4);
 		}
-		if (!is_timer_on(4))
+		if (flag_increase_over_time == 1)
 		{
-			increase_value();
-			set_timer(4, INCREASE_TIME);
+			flag_increase_over_time = 0;
+			sch_add_task(task_increase_over_time, INCREASE_TIME, 0);
 		}
 		button1_fsm();
 		break;
@@ -467,4 +452,62 @@ bool button1_fsm(void)
 		break;
 	}
 	return 1;
+}
+/*
+ * @brief:	switch state of led, use to add task
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+void task_toggle_led(void){
+	switch(led_st){
+	case ON:
+		led_st = OFF;
+		break;
+	case OFF:
+		led_st = ON;
+		break;
+	default:
+		break;
+	}
+	flag_toggle_led = 1;
+}
+/*
+ * @brief:	check if scan 7 seg or not
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+void task_scan7seg(void){
+	if (light_st != TRAFFIC_LIGHT || red_time == green_time + yellow_time)
+	{
+		scan7SEG();
+	}
+	else
+	{
+		off_all7led();
+	}
+}
+/*
+ * @brief:	countdown for 1 second
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+void task_countdown_1sec(void){
+	if (traffic_light_timer1 > 0)
+		traffic_light_timer1--;
+	if (traffic_light_timer2 > 0)
+		traffic_light_timer2--;
+	flag_countdown = 1;
+}
+/*
+ * @brief:	increase by 1 overtime
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+void task_increase_over_time(void){
+	increase_value();
+	flag_increase_over_time = 1;
 }

@@ -42,7 +42,7 @@ bool sch_add_task(void (*pTask)(), uint16_t delay, uint16_t period)
 {
     struct task *my_task = (struct task *)malloc(sizeof(struct task));
     my_task->pTask = pTask;
-    my_task->counter = delay *FREQ_OF_TIM/1000;
+    my_task->counter = delay *FREQUENCY_OF_TIM/1000;
     my_task->period = period;
     my_task->next_task = 0;
     if (stack_task.top == 0)

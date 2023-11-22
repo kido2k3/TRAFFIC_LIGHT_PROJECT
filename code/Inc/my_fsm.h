@@ -15,4 +15,5 @@
 
 
 void fsm(void);
+void task_scan7seg(void);
 #endif /* INC_MY_FSM_H_ */
