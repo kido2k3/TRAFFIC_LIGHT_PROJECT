@@ -14,7 +14,7 @@
 
 void scan7SEG(void);
 void init_led(void);
-void control_traffic_light(unsigned i, GPIO_PinState red, GPIO_PinState yellow, GPIO_PinState green);
+void control_traffic_light(unsigned i, GPIO_PinState red, GPIO_PinState green);
 void update_led_buf(unsigned value1, unsigned value2);
 void off_all7led(void);
 #endif /* SEGMENT_LED_H_ */

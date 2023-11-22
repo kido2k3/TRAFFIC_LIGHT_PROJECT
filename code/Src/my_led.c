@@ -28,7 +28,6 @@ struct {
 struct{
 	GPIO_TypeDef *port;
 	uint16_t green;
-	uint16_t yellow;
 	uint16_t red;
 } traffic_light[2];
 
@@ -47,10 +46,9 @@ void init7SEG(void);
  * @para:	i - id of traffic light
  * 			red, yellow, green - state of red, yellow and green led (1: on, 0: off)
  * @retval:	none*/
-void control_traffic_light(unsigned i, GPIO_PinState red, GPIO_PinState yellow, GPIO_PinState green){
+void control_traffic_light(unsigned i, GPIO_PinState red, GPIO_PinState green){
 	HAL_GPIO_WritePin(traffic_light[i].port, traffic_light[i].red, !red);
 	HAL_GPIO_WritePin(traffic_light[i].port, traffic_light[i].green, !green);
-	HAL_GPIO_WritePin(traffic_light[i].port, traffic_light[i].yellow, !yellow);
 }
 void init_led(void){
 	init_traffic_light();
@@ -60,11 +58,9 @@ void init_led(void){
 void init_traffic_light(void){
 	traffic_light[0].port = TL_PORT1;
 	traffic_light[0].green = TL_GREEN1;
-	traffic_light[0].yellow =TL_YELLOW1;
 	traffic_light[0].red =TL_RED1;
 	traffic_light[1].port = TL_PORT2;
 	traffic_light[1].green=TL_GREEN2;
-	traffic_light[1].yellow=TL_YELLOW2;
 	traffic_light[1].red=TL_RED2;
 }
 /*

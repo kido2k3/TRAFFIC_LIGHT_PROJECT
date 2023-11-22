@@ -10,9 +10,8 @@
 
 #include "main.h"
 
-#define FREQ_OF_TIM 100.0
-
 // define input
+// All buttons are pull-up
 #define BUTTON1_PORT	GPIOA
 #define BUTTON1			GPIO_PIN_7
 #define BUTTON2_PORT	GPIOA
@@ -38,11 +37,9 @@
 
 #define TL_PORT1		GPIOA	//Traffic light 1st
 #define TL_GREEN1		GPIO_PIN_1
-#define TL_YELLOW1		GPIO_PIN_2
 #define TL_RED1			GPIO_PIN_3
 #define TL_PORT2		GPIOA	//Traffic light 2nd
 #define TL_GREEN2		GPIO_PIN_4
-#define TL_YELLOW2		GPIO_PIN_5
 #define TL_RED2			GPIO_PIN_11
 #define LED1_PORT		GPIOA
 #define LED1			GPIO_PIN_10

@@ -75,8 +75,8 @@ void traffic_light_fsm(void)
 	switch (tl_st)
 	{
 	case RED_GREEN:
-		control_traffic_light(0, 1, 0, 0);
-		control_traffic_light(1, 0, 0, 1);
+		control_traffic_light(0, 1, 0);
+		control_traffic_light(1, 0, 1);
 		if (traffic_light_timer2 <= 0)
 		{
 			traffic_light_timer2 = yellow_time;
@@ -84,8 +84,8 @@ void traffic_light_fsm(void)
 		}
 		break;
 	case RED_YELLOW:
-		control_traffic_light(0, 1, 0, 0);
-		control_traffic_light(1, 0, 1, 0);
+		control_traffic_light(0, 1, 0);
+		control_traffic_light(1, 1, 1);
 		if (traffic_light_timer2 <= 0)
 		{
 			traffic_light_timer1 = green_time;
@@ -94,8 +94,8 @@ void traffic_light_fsm(void)
 		}
 		break;
 	case GREEN_RED:
-		control_traffic_light(0, 0, 0, 1);
-		control_traffic_light(1, 1, 0, 0);
+		control_traffic_light(0, 0, 1);
+		control_traffic_light(1, 1, 0);
 		if (traffic_light_timer1 <= 0)
 		{
 			traffic_light_timer1 = yellow_time;
@@ -103,8 +103,8 @@ void traffic_light_fsm(void)
 		}
 		break;
 	case YELLOW_RED:
-		control_traffic_light(0, 0, 1, 0);
-		control_traffic_light(1, 1, 0, 0);
+		control_traffic_light(0, 1, 1);
+		control_traffic_light(1, 1, 0);
 		if (traffic_light_timer1 <= 0)
 		{
 			traffic_light_timer1 = red_time;
@@ -134,26 +134,26 @@ void fsm_led(void)
 		{
 		case RED_ADJUSTMENT:
 			// turn red led on
-			control_traffic_light(0, 1, 0, 0);
-			control_traffic_light(1, 1, 0, 0);
+			control_traffic_light(0, 1, 0);
+			control_traffic_light(1, 1, 0);
 			break;
 		case YELLOW_ADJUSTMENT:
 			// turn yellow led on
-			control_traffic_light(0, 0, 1, 0);
-			control_traffic_light(1, 0, 1, 0);
+			control_traffic_light(0, 1, 1);
+			control_traffic_light(1, 1, 1);
 			break;
 		case GREEN_ADJUSTMENT:
 			// turn green led on
-			control_traffic_light(0, 0, 0, 1);
-			control_traffic_light(1, 0, 0, 1);
+			control_traffic_light(0, 0, 1);
+			control_traffic_light(1, 0, 1);
 			break;
 		default:
 			break;
 		}
 		break;
 	case OFF:
-		control_traffic_light(0, 0, 0, 0);
-		control_traffic_light(1, 0, 0, 0);
+		control_traffic_light(0, 0, 0);
+		control_traffic_light(1, 0, 0);
 	}
 }
 /**
@@ -203,8 +203,8 @@ void fsm(void)
 		if (red_time != green_time + yellow_time)
 		{
 			// off all leds
-			control_traffic_light(0, 0, 0, 0);
-			control_traffic_light(1, 0, 0, 0);
+			control_traffic_light(0, 0, 0);
+			control_traffic_light(1, 0, 0);
 		}
 		else
 		{
