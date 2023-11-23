@@ -22,7 +22,9 @@ enum
 	GREEN_ADJUSTMENT,
 	SET_VALUE,
 	INCREASE_BY_1,
-	INCREASE_BY_1_OVER_TIME
+	INCREASE_BY_1_OVER_TIME,
+	MANUALLY_SET,
+	SWITCH_TRAFFIC_STATE
 } /*state variable of system*/ light_st = TRAFFIC_LIGHT,
 							   /* previous state variable of system*/ light_pre_st = TRAFFIC_LIGHT;
 enum
@@ -32,7 +34,7 @@ enum
 	GREEN_RED,
 	YELLOW_RED,
 	UNEQUAL
-} /* state variable of traffic light*/ tl_st = RED_GREEN;
+} /* state variable of traffic light*/ tl_st = RED_GREEN, man_tl_st = RED_GREEN;
 enum
 {
 	ON,
@@ -60,9 +62,10 @@ bool flag_increase_over_time = 1;
 bool button0_fsm(void);
 bool button1_fsm(void);
 bool button2_fsm(void);
+bool manually_change_fsm(void);
+bool manually_set_fsm(void);
 
 void task_toggle_led(void);
-//bool task_scan7seg(void);
 void task_countdown_1sec(void);
 void task_increase_over_time(void);
 /*
@@ -113,6 +116,59 @@ void traffic_light_fsm(void)
 		}
 		break;
 
+	default:
+		break;
+	}
+}
+/*
+ * @brief: 	finite state machine to display traffic light manually
+ * @para:	none
+ * @retval:	none*/
+void manually_traffic_state(void)
+{
+	switch (man_tl_st)
+	{
+	case RED_GREEN:
+		control_traffic_light(0, 1, 0);
+		control_traffic_light(1, 0, 1);
+		break;
+	case RED_YELLOW:
+		control_traffic_light(0, 1, 0);
+		control_traffic_light(1, 1, 1);
+		break;
+	case GREEN_RED:
+		control_traffic_light(0, 0, 1);
+		control_traffic_light(1, 1, 0);
+		break;
+	case YELLOW_RED:
+		control_traffic_light(0, 1, 1);
+		control_traffic_light(1, 1, 0);
+		break;
+
+	default:
+		break;
+	}
+}
+/*
+ * @brief: 	finite state machine to switch traffic state manually
+ * @para:	none
+ * @retval:	none*/
+void switch_traffic_state(void)
+{
+	switch (man_tl_st)
+	{
+	case RED_GREEN:
+		man_tl_st = RED_YELLOW;
+		break;
+	case RED_YELLOW:
+		man_tl_st = GREEN_RED;
+		break;
+	case GREEN_RED:
+		man_tl_st = YELLOW_RED;
+		break;
+	case YELLOW_RED:
+		man_tl_st = RED_GREEN;
+		break;
 	default:
 		break;
 	}
@@ -217,7 +273,7 @@ void fsm(void)
 		}
 		// transition mode function
 		button0_fsm();
-
+		manually_change_fsm();
 		break;
 	case RED_ADJUSTMENT:
 		// update buffer of red with the condition that previous state has to be different from changing-value states
@@ -304,6 +360,19 @@ void fsm(void)
 			sch_add_task(task_increase_over_time, INCREASE_TIME, 0);
 		}
 		button1_fsm();
+		break;
+	case MANUALLY_SET:
+		//display current traffic light base on state
+//		HAL_GPIO_WritePin(GPIOA, TL_GREEN1, RESET);
+		manually_traffic_state();
+		manually_set_fsm();
+		manually_change_fsm();
+		break;
+	case SWITCH_TRAFFIC_STATE:
+		// switch traffic light state
+		switch_traffic_state();
+		light_st = light_pre_st;
+		light_pre_st = SWITCH_TRAFFIC_STATE;
 		break;
 	default:
 		break;
@@ -454,6 +523,86 @@ bool button1_fsm(void)
 	return 1;
 }
 /*
+ * @brief:	manually mode button
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+bool manually_change_fsm(void){
+	switch (button_st[2])
+	{
+	case release:
+		if (is_button_pressed(2) == 1)
+		{
+			light_pre_st = light_st;
+			switch (light_st)
+			{
+			case TRAFFIC_LIGHT:
+				man_tl_st = RED_GREEN;
+				light_st = MANUALLY_SET;
+				break;
+			case MANUALLY_SET:
+				tl_st = RED_GREEN;
+				light_st = TRAFFIC_LIGHT;
+				break;
+			default:
+				break;
+			}
+			button_st[2] = pressed;
+		}
+		else if (is_button_pressed(2) == ERROR)
+			return 0;
+		break;
+	case pressed:
+		if (!is_button_pressed(2))
+		{
+			button_st[2] = release;
+		}
+		else
+		{
+			return 0;
+		}
+		break;
+	default:
+		return 0;
+	}
+	return 1;
+}
+/*
+ * @brief:	manually set button
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+bool manually_set_fsm(void){
+	switch (button_st[1])
+	{
+	case release:
+		if (is_button_pressed(1) == 1)
+		{
+			light_pre_st = light_st;
+			light_st = SWITCH_TRAFFIC_STATE;
+			button_st[1] = pressed;
+		}
+		else if (is_button_pressed(1) == ERROR)
+			return 0;
+		break;
+	case pressed:
+		if (!is_button_pressed(1))
+		{
+			button_st[1] = release;
+		}
+		else
+		{
+			return 0;
+		}
+		break;
+	default:
+		return 0;
+	}
+	return 1;
+}
+/*
  * @brief:	switch state of led, use to add task
  * @para:	none
  * @retval:	1 - successful
@@ -479,7 +628,10 @@ void task_toggle_led(void){
  * 			0 - fail
  * */
 void task_scan7seg(void){
-	if (light_st != TRAFFIC_LIGHT || red_time == green_time + yellow_time)
+	if(light_st == MANUALLY_SET || light_st == SWITCH_TRAFFIC_STATE){
+		off_all7led();
+	}
+	else if (light_st != TRAFFIC_LIGHT || red_time == green_time + yellow_time)
 	{
 		scan7SEG();
 	}
