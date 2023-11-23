@@ -31,6 +31,16 @@ struct{
 	uint16_t red;
 } traffic_light[2];
 
+/*
+ * bief: pedestrian light struct
+ * */
+struct{
+	GPIO_TypeDef *port;
+	uint16_t green;
+	uint16_t red;
+} pedestrian_light;
+
+
 uint8_t led_buffer[NUMBER_OF_7_LED] = { 7,4,8,0 };
 unsigned idx_7led = 0;
 
@@ -38,23 +48,32 @@ unsigned idx_7led = 0;
 void display7SEG(unsigned short i);
 void update7led(uint8_t i);
 void init_traffic_light(void);
+void init_pedestrian_light(void);
 void init7SEG(void);
 
 
 /*
  * @brief: 	display traffic light function
  * @para:	i - id of traffic light
- * 			red, yellow, green - state of red, yellow and green led (1: on, 0: off)
+ * 			red, green - state of red and green led (1: on, 0: off)
  * @retval:	none*/
 void control_traffic_light(unsigned i, GPIO_PinState red, GPIO_PinState green){
 	HAL_GPIO_WritePin(traffic_light[i].port, traffic_light[i].red, !red);
 	HAL_GPIO_WritePin(traffic_light[i].port, traffic_light[i].green, !green);
 }
+/*
+ * @brief: 	display pedestrian light function
+ * @para:	red, green - state of red and green led (1: on, 0: off)
+ * @retval:	none*/
+void control_pedestrian_light( GPIO_PinState red, GPIO_PinState green){
+	HAL_GPIO_WritePin(pedestrian_light.port, pedestrian_light.red, !red);
+	HAL_GPIO_WritePin(pedestrian_light.port, pedestrian_light.green, !green);
+}
 void init_led(void){
 	init_traffic_light();
+	init_pedestrian_light();
 	init7SEG();
 }
-
 void init_traffic_light(void){
 	traffic_light[0].port = TL_PORT1;
 	traffic_light[0].green = TL_GREEN1;
@@ -63,6 +82,11 @@ void init_traffic_light(void){
 	traffic_light[1].green=TL_GREEN2;
 	traffic_light[1].red=TL_RED2;
 }
+ void init_pedestrian_light(void){
+	 pedestrian_light.port = TL_PEDESTRIAN_PORT;
+	 pedestrian_light.green = TL_PEDESTRIAN_GREEN;
+	 pedestrian_light.red = TL_PEDESTRIAN_RED;
+ }
 /*
  * @brief: 	call buffer function and increase id of 7-seg leds
  * @para:	none

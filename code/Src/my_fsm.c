@@ -39,10 +39,11 @@ enum
 {
 	ON,
 	OFF
-} /* state variable of single led*/ led_st;
-#define RED_TIME_INIT 10
-#define GREEN_TIME_INIT 8
-#define YELLOW_TIME_INIT 2
+} /* state variable of single led*/ led_st, pedestrian_st = OFF;
+#define RED_TIME_INIT 			10
+#define GREEN_TIME_INIT 		8
+#define YELLOW_TIME_INIT 		2
+#define PEDESTRIAN_TIMER_INIT	30
 
 unsigned red_time = RED_TIME_INIT;
 unsigned green_time = GREEN_TIME_INIT;
@@ -55,19 +56,24 @@ unsigned yellow_time_buffer = YELLOW_TIME_INIT;
 unsigned traffic_light_timer1 = RED_TIME_INIT;
 unsigned traffic_light_timer2 = GREEN_TIME_INIT;
 
+unsigned pedestrian_timer = 0; // timer to auto turn off pedestrian light when no one press for a while
+
 bool flag_toggle_led = 1;
 bool flag_countdown = 1;
 bool flag_increase_over_time = 1;
+bool flag_pedestrian_on = 1;
 
 bool button0_fsm(void);
 bool button1_fsm(void);
 bool button2_fsm(void);
+bool button3_fsm(void); // pedestrian button fsm
 bool manually_change_fsm(void);
 bool manually_set_fsm(void);
 
 void task_toggle_led(void);
 void task_countdown_1sec(void);
 void task_increase_over_time(void);
+void task_countdown_pedestrian_timer(void);
 /*
  * @brief: 	finite state machine to control behavior of traffic light
  * @para:	none
@@ -115,7 +121,6 @@ void traffic_light_fsm(void)
 			tl_st = RED_GREEN;
 		}
 		break;
-
 	default:
 		break;
 	}
@@ -210,6 +215,7 @@ void fsm_led(void)
 	case OFF:
 		control_traffic_light(0, 0, 0);
 		control_traffic_light(1, 0, 0);
+		break;
 	}
 }
 /**
@@ -244,7 +250,47 @@ void increase_value(void)
 		}
 	}
 }
-
+/*@brief:	state machine to control pedestrian light ON/OFF
+ * @para:	none
+ * @retval:	none*/
+void pedestrian_fsm(void)
+{
+	if(pedestrian_timer > 0){
+		if(flag_pedestrian_on == 1){
+			flag_pedestrian_on = 0;
+			sch_add_task(task_countdown_pedestrian_timer, ONE_SECOND, 0);
+		}
+	}
+	else{
+		pedestrian_st = OFF;
+		flag_pedestrian_on = 0;
+	}
+	switch (pedestrian_st)
+	{
+	case ON:
+		switch (tl_st)
+		{
+		case RED_GREEN:
+			control_pedestrian_light(0, 1);
+			break;
+		case RED_YELLOW:
+			control_pedestrian_light(0, 1);
+			break;
+		case GREEN_RED:
+			control_pedestrian_light(1, 0);
+			break;
+		case YELLOW_RED:
+			control_pedestrian_light(1, 0);
+			break;
+		default:
+			break;
+		}
+		break;
+	case OFF:
+		control_pedestrian_light(0, 0);
+		break;
+	}
+}
 /**
  * @brief  Top-layer finite state machine
  * @param  None
@@ -273,7 +319,9 @@ void fsm(void)
 		}
 		// transition mode function
 		button0_fsm();
+		button3_fsm();
 		manually_change_fsm();
+		pedestrian_fsm();
 		break;
 	case RED_ADJUSTMENT:
 		// update buffer of red with the condition that previous state has to be different from changing-value states
@@ -523,6 +571,42 @@ bool button1_fsm(void)
 	return 1;
 }
 /*
+ * @brief:	pedestrian button
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+bool button3_fsm(void)
+{
+	switch (button_st[3])
+	{
+	case release:
+		if (is_button_pressed(3) == 1)
+		{
+			pedestrian_st = ON;
+			flag_pedestrian_on = 1;
+			pedestrian_timer  = PEDESTRIAN_TIMER_INIT;
+		}
+		else if (is_button_pressed(3) == ERROR)
+			return 0;
+		break;
+	case pressed:
+		if (!is_button_pressed(3))
+		{
+			button_st[3] = release;
+		}
+		else
+		{
+			return 0;
+		}
+		break;
+	default:
+		return 0;
+		break;
+	}
+	return 1;
+}
+/*
  * @brief:	manually mode button
  * @para:	none
  * @retval:	1 - successful
@@ -662,4 +746,14 @@ void task_countdown_1sec(void){
 void task_increase_over_time(void){
 	increase_value();
 	flag_increase_over_time = 1;
+}
+/*
+ * @brief:	countdown pedestrian counter each 1 second
+ * @para:	none
+ * @retval:	1 - successful
+ * 			0 - fail
+ * */
+void task_countdown_pedestrian_timer(void){
+	pedestrian_timer -= 1;
+	flag_pedestrian_on = 1;
 }

@@ -7,7 +7,7 @@
 
 #include <my_button.h>
 
-#define NUMBER_OF_BUTTON 	3
+#define NUMBER_OF_BUTTON 	4
 
 #define RELEASE				1
 #define PRESSED				0
@@ -33,7 +33,8 @@ struct {
 /*
  * button[0]: transitioning-mode button
  * button[1]: increasing-value button
- * button[2]: setting-value button*/
+ * button[2]: setting-value button
+ * button[3]: pedestrian button*/
 void button_init(void) {
 	for (int i = 0; i < NUMBER_OF_BUTTON; i++) {
 		button[i].reg[0] = button[i].reg[1] = button[i].reg[2] = RELEASE;
@@ -48,6 +49,8 @@ void button_init(void) {
 	button[1].pin = BUTTON2;
 	button[2].port = BUTTON3_PORT;
 	button[2].pin = BUTTON3;
+	button[3].port = BUTTON4_PORT;
+	button[3].pin = BUTTON4;
 }
 /*
  * @brief:	read the value of all buttons

@@ -6,3 +6,5 @@
 - to change the mode to manually set, press button 2 while we in traffic light state
 - to change state of traffic light manually, press button 1
 - press button 2 again to comeback in auto mode
+Đạt commit: add button 3 for pedestrian light, add pedestrian light,
+	- got a bug of pedestrian counter in function pedestrian_fsm()
