@@ -1,10 +1,15 @@
-22/11/2023 10:46pm
+22/11/2023 10:46 pm
 Đạt commit: Update structure from software timer to scheduler
 Đạt commit: Define yellow led of traffic light will be replace by turn on red and green led, update code, update log
-23/11/2023 13:00pm
+23/11/2023 13:00 pm
 Đạt commit: update fearture: set traffic light manually
 - to change the mode to manually set, press button 2 while we in traffic light state
 - to change state of traffic light manually, press button 1
 - press button 2 again to comeback in auto mode
 Đạt commit: add button 3 for pedestrian light, add pedestrian light,
 	- got a bug of pedestrian counter in function pedestrian_fsm()
+24/11/2023 9:42 pm
+Đạt commit: Update Pedestrian state to traffic light state
+- Add pedestrian when in Manually set state
+- change some if statement to modulo 
+eg: if(buffer>=100) then buffer = 0 to buffer%=100;
