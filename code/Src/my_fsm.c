@@ -190,10 +190,12 @@ void fsm(void) {
 		if (pedestrian_timer == 0) {
 			light_pre_st = light_st;
 			light_st = TRAFFIC_LIGHT;
+			buzzer_turnOff(0);
 		}
 
 		//return to traffic light mode
 		button3_fsm();
+		buzzer_processing(0);
 		break;
 
 	}
@@ -543,6 +545,7 @@ bool button3_fsm(void) {
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
 				pedestrian_timer = PEDESTRIAN_TIMER;
+				buzzer_turnOn(0);
 				light_st = PEDESTRIAN_MODE;
 				break;
 			case PEDESTRIAN_MODE:

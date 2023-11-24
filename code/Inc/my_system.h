@@ -11,6 +11,7 @@
 #include"my_define.h"
 #include"my_scheduler.h"
 #include"my_button.h"
+#include"my_buzzer.h"
 #include"my_led.h"
 #include"my_fsm.h"
 

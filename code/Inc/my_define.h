@@ -39,6 +39,9 @@
 #define TL_PED_RED			GPIO_PIN_8
 #define ERROR				0xff
 
+#define BUZZER_0_PORT       GPIOA
+#define BUZZER_0            GPIO_PIN_6
+
 typedef uint8_t bool;
 
 typedef uint8_t bool;
