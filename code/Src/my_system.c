@@ -13,7 +13,7 @@ void init(void)
 	HAL_TIM_Base_Start_IT(&htim2);
 	button_init();
 	init_led();
-	init_task();
+	sch_add_task(button_read, 0, READ_BUTTON_TIME);
 }
 
 void loop(void)
