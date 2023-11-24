@@ -13,6 +13,8 @@
 #include"my_button.h"
 #include"my_led.h"
 #include"my_fsm.h"
+#include "my_task.h"
+
 extern TIM_HandleTypeDef htim2;
 void init(void);
 void loop(void);
