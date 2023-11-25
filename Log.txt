@@ -13,3 +13,5 @@
 - Add pedestrian when in Manually set state
 - change some if statement to modulo 
 eg: if(buffer>=100) then buffer = 0 to buffer%=100;
+25/11/2023 11:27 am
+Đạt commit: Change eviroment for Adjustment states, re-set traffic state to RED_GREEN and timer when comeback from Adjustment states

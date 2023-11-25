@@ -71,7 +71,6 @@ void manually_traffic_state(void);
  * @retval None
  */
 void fsm(void) {
-	// scan 4 seven-seg leds with 50ms
 	switch (light_st) {
 	case TRAFFIC_LIGHT:
 		if (red_time != green_time + yellow_time) {
@@ -378,6 +377,8 @@ bool button0_fsm(void) {
 		if (is_button_pressed(0) == 1) {
 			// to do
 			light_pre_st = light_st;
+			control_pedestrian_light(0, 0);
+			pedestrian_timer = 0;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
 				light_st = RED_ADJUSTMENT;
@@ -390,6 +391,9 @@ bool button0_fsm(void) {
 				break;
 			case GREEN_ADJUSTMENT:
 				light_st = TRAFFIC_LIGHT;
+				tl_st = RED_GREEN;
+				traffic_light_timer1 = red_time;
+				traffic_light_timer2 = green_time;
 				break;
 			default:
 				break;
