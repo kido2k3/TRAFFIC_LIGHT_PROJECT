@@ -315,6 +315,7 @@ void switch_traffic_state(void) {
  * @para:	none
  * @retval:	none*/
 void fsm_led(void) {
+	control_pedestrian_light(0, 0);
 	// transition state in 0.25s
 	if (flag_toggle_led) {
 		flag_toggle_led = 0;
@@ -390,6 +391,9 @@ bool button0_fsm(void) {
 				light_st = GREEN_ADJUSTMENT;
 				break;
 			case GREEN_ADJUSTMENT:
+				tl_st = RED_GREEN;
+				traffic_light_timer1 = red_time;
+				traffic_light_timer2 = green_time;
 				light_st = TRAFFIC_LIGHT;
 				tl_st = RED_GREEN;
 				traffic_light_timer1 = red_time;
