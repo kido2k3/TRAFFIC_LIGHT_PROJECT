@@ -1,235 +1,202 @@
 /*
  * my_buzzer.c
  *
- *  Created on: Nov 23, 2023
+ *  Created on: Nov 27, 2023
  *      Author: atfox
  */
 
+#include "my_buzzer.h"
 
-#include <my_buzzer.h>
-
-
-
-enum BuzzerOnState {
-    SLOW,
-    ALMOSTSLOW,
-    MEDIUM,
-    ALMOSTFAST,
-    FAST
+enum BuzzerState {
+	OFF_STATE,
+	ALARM_STATE
 };
+struct BuzzerPhaseInfo {
+	uint8_t  phaseState;		// On or Off
+	uint32_t phasePeriod;	// Period of Phase
+};
+struct BuzzerStruct {
+	enum BuzzerState buzzerState;
+	uint8_t intensity;
+	struct BuzzerPhaseInfo phaseInfo;
 
-struct {
-    int is_on;
-	enum BuzzerOnState onState;
+	TIM_HandleTypeDef *htim;
+	int channel_address;
 
-	GPIO_TypeDef *port;
-	uint16_t pin;
-} buzzer[NUMBER_OF_BUZZER];
-
-
+};
+struct BuzzerStruct buzzer[NUMBER_OF_BUZZER];
 
 void buzzer_init(void) {
-    for(int i = 0; i < NUMBER_OF_BUZZER; i++) {
-        buzzer[i].is_on = 0;
-        buzzer[i].onState = SLOW;
-        setTimerBuzzer(i, BUZZER_SLOW_PERIOD * ((BUZZER_SLOW_PERIOD / 100.0)));
-        setTimerBuzzerState(i, BUZZER_CHANGE_STATE_PERIOD);
-        // Hard configuration
-        switch(i) {
-        case 0:
-            buzzer[i].port = BUZZER_0_GPIO_Port;
-            buzzer[i].pin  = BUZZER_0_Pin;
-            break;
-        case 1:
-            break;
-       }
-    }
-    timerBuzzerInit();
+	for(int i = 0; i < NUMBER_OF_BUZZER; i++) {
+		buzzer[i].buzzerState = OFF_STATE;
+		buzzer[i].intensity = 0;
+		buzzer[i].phaseInfo.phaseState 	= 0;
+		buzzer[i].phaseInfo.phasePeriod = BUZZER_PHASE_PERIOD_MAX;
+		// Configuration of User
+		switch(i) {
+		case 0:
+			buzzer[i].htim = &htim3;
+			buzzer[i].channel_address = TIM_CHANNEL_1;
+			break;
+		case 1:
+			break;
+		case 2:
+			break;
+		}
+		// Set up PWM_TIM
+		__HAL_TIM_SetCompare(buzzer[i].htim, buzzer[i].channel_address, 100);
+		timerFlagBuzzerChangeIntensity[i] = 0;
+		timerFlagBuzzerPhase[i] = 0;
+	}
 }
 
-// Return ring time or software timer
-// Arg: <curState: current state of buzzer after state is updated> <pulseHigh: pulse of buzzer is HIGH>
-//              <For Period>                                                <For DutyCycle>
-int getNetxRingTime(enum BuzzerOnState curState, int pulseHigh) {
-    switch(curState) {
-        case SLOW:
-            if(pulseHigh) return (BUZZER_SLOW_PERIOD * (1 - (BUZZER_SLOW_DUTYCYCLE / 100.0)));
-            else return (BUZZER_SLOW_PERIOD * ((BUZZER_SLOW_DUTYCYCLE / 100.0)));
-            break;
-        case ALMOSTSLOW:
-            if(pulseHigh) return (BUZZER_ALMOSTSLOW_PERIOD * (1 - (BUZZER_ALMOSTSLOW_DUTYCYCLE / 100.0)));
-            else return (BUZZER_ALMOSTSLOW_PERIOD * ((BUZZER_ALMOSTSLOW_DUTYCYCLE / 100.0)));
-            break;
-        case MEDIUM:
-            if(pulseHigh) {
-            	return (BUZZER_MEDIUM_PERIOD * (1 - (BUZZER_MEDIUM_DUTYCYCLE / 100.0)));
-            }
-            else {
-            	return (BUZZER_MEDIUM_PERIOD * ((BUZZER_MEDIUM_DUTYCYCLE / 100.0)));
-            }
-            break;
-        case ALMOSTFAST:
-            if(pulseHigh) return (BUZZER_ALMOSTFAST_PERIOD * (1 - (BUZZER_ALMOSTFAST_DUTYCYCLE / 100.0)));
-            else return (BUZZER_ALMOSTFAST_PERIOD * ((BUZZER_ALMOSTFAST_PERIOD / 100.0)));
-            break;
-        case FAST:
-            if(pulseHigh) return (BUZZER_FAST_PERIOD * (1 - (BUZZER_FAST_DUTYCYCLE / 100.0)));
-            else return (BUZZER_FAST_PERIOD * ((BUZZER_FAST_PERIOD / 100.0)));
-            break;
-    }
+/*
+ * @brief:	Set Buzzer's intensity
+ * @para:	<intensity> is number of buzzer's intensity (intensity == 0 is turning off buzzer) [0;100]
+ * @retval:	none
+ * */
+void set_buzzer_intensity(uint8_t buzzer_index, uint8_t intensity) {
+	if(intensity > 95) {
+		__HAL_TIM_SetCompare(buzzer[buzzer_index].htim, buzzer[buzzer_index].channel_address, 0);
+	}
+	else if (intensity < 5) {
+		__HAL_TIM_SetCompare(buzzer[buzzer_index].htim, buzzer[buzzer_index].channel_address, 100);
+	}
+	else {
+		__HAL_TIM_SetCompare(buzzer[buzzer_index].htim, buzzer[buzzer_index].channel_address, 100 - intensity);
+	}
+
 }
 
-void buzzer_resetState(uint8_t index) {
-    buzzer[index].is_on = 0;
-    buzzer[index].onState = SLOW;
-    setTimerBuzzer(index, BUZZER_SLOW_PERIOD * ((BUZZER_SLOW_PERIOD / 100.0)));
-    setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 0);
+void ChangeIntensityOneShot(void) {
+	timerFlagBuzzerChangeIntensity[0] = 1;
 }
-void buzzer_turnOn(uint8_t index) {
-    buzzer_resetState(index);
-    buzzer[index].is_on = 1;
-    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-//        HAL_GPIO_WritePin(BUZZER_0_GPIO_Port, BUZZER_0_Pin, 1);
-    // TODO: reset state of buzzer (It's unnecessary, but confirm state & counter)
-}
-void buzzer_turnOff(uint8_t index) {
-    buzzer_resetState(index);
-    // TODO: reset state of buzzer
-}
-// Software timer get state to run counter (or not)
-int is_buzzer_on(uint8_t index) {
-    return (buzzer[index].is_on);
-}
-// Place this function in MAIN-LOOP
-void buzzer_processing(uint8_t index) {
-    if(buzzer[index].is_on) {
-        // TODO
-        switch(buzzer[index].onState) {
-            case SLOW:
-            if(timer_flag_buzzerState[index]) {
-                buzzer[index].onState = ALMOSTSLOW;
-                setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-                setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-            }
-            else if(timer_flag_buzzer[index]) {
-                if(HAL_GPIO_ReadPin(buzzer[index].port, buzzer[index].pin)) {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 1));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 0);
-                }
-                else {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-                }
-            }
-            break;
-        case ALMOSTSLOW:
-            if(timer_flag_buzzerState[index]) {
-                buzzer[index].onState = MEDIUM;
-                setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-                setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-            }
-            else if(timer_flag_buzzer[index]) {
-                if(HAL_GPIO_ReadPin(buzzer[index].port, buzzer[index].pin)) {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 1));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 0);
-                }
-                else {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-                }
-            }
-            break;
-        case MEDIUM:
-            if(timer_flag_buzzerState[index]) {
-                buzzer[index].onState = ALMOSTFAST;
-                setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-                setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-            }
-            else if(timer_flag_buzzer[index]) {
-                if(HAL_GPIO_ReadPin(buzzer[index].port, buzzer[index].pin)) {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 1));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 0);
-                }
-                else {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-                }
-            }
-            break;
-        case ALMOSTFAST:
-            if(timer_flag_buzzerState[index]) {
-                buzzer[index].onState = FAST;
-                setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-                setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-            }
-            else if(timer_flag_buzzer[index]) {
-                if(HAL_GPIO_ReadPin(buzzer[index].port, buzzer[index].pin)) {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 1));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 0);
-                }
-                else {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-                }
-            }
-            break;
-        case FAST:
-            if(timer_flag_buzzerState[index]) {
-                buzzer[index].onState = SLOW;
-                setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-                setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-//                buzzer_turnOff(index);
-            }
-            else if(timer_flag_buzzer[index]) {
-                if(HAL_GPIO_ReadPin(buzzer[index].port, buzzer[index].pin)) {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 1));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 0);
-                }
-                else {
-                    setTimerBuzzer(index, getNetxRingTime(buzzer[index].onState, 0));
-                    HAL_GPIO_WritePin(buzzer[index].port, buzzer[index].pin, 1);
-
-                }
-            }
-            break;
-    }
-    }
+void ChangePhaseOneShot(void) {
+	timerFlagBuzzerPhase[0] = 1;
 }
 
-// Below function will place in software timer
+/*
+ * @brief:	Turn on buzzer
+ * @para:	Index of buzzer
+ * @retval:	none
+ * */
+void buzzer_turn_on(uint8_t buzzer_index) {
+	buzzer[buzzer_index].buzzerState 			= ALARM_STATE;
+	buzzer[buzzer_index].intensity 				= BUZZER_INTENSITY_MIN;
+	buzzer[buzzer_index].phaseInfo.phaseState 	= 1;
+	buzzer[buzzer_index].phaseInfo.phasePeriod 	= BUZZER_PHASE_PERIOD_MAX;
+	set_buzzer_intensity(buzzer_index, buzzer[buzzer_index].intensity);
+	// Reset timer counter
+
+#ifdef FUNCTION_TESTING
+	set_timer_buzzer_change_intensity(buzzer_index, BUZZER_INTENSITY_CHANGE_TIMER);
+	set_timer_buzzer_phase(buzzer_index, buzzer[buzzer_index].phaseInfo.phasePeriod);
+#else
+	timerFlagBuzzerChangeIntensity[buzzer_index] = 0;
+	timerFlagBuzzerPhase[buzzer_index] = 0;
+	sch_add_task(ChangeIntensityOneShot, BUZZER_INTENSITY_CHANGE_TIMER, 0);
+	sch_add_task(ChangePhaseOneShot, buzzer[buzzer_index].phaseInfo.phasePeriod, 0);
+#endif
+}
+
+void buzzer_turn_off(uint8_t buzzer_index) {
+	buzzer[buzzer_index].buzzerState 			= OFF_STATE;
+	buzzer[buzzer_index].intensity 				= 0;
+	buzzer[buzzer_index].phaseInfo.phaseState 	= 0;
+	buzzer[buzzer_index].phaseInfo.phasePeriod 	= BUZZER_PHASE_PERIOD_MAX;
+	set_buzzer_intensity(buzzer_index, buzzer[buzzer_index].intensity);
+	// Reset timer counter
+#ifdef FUNCTION_TESTING
+	set_timer_buzzer_change_intensity(buzzer_index, BUZZER_INTENSITY_CHANGE_TIMER);
+	set_timer_buzzer_phase(buzzer_index, buzzer[buzzer_index].phaseInfo.phasePeriod);
+#else
+	timerFlagBuzzerChangeIntensity[buzzer_index] = 0;
+	timerFlagBuzzerPhase[buzzer_index] = 0;
+#endif
+}
+
+/*
+ * @brief:	Get information
+ * @para:	Index of buzzer
+ * @retval:	Buzzer is alarm
+ * */
+int is_buzzer_alarm(uint8_t buzzer_index) {
+	return (buzzer[buzzer_index].buzzerState == ALARM_STATE);
+}
+
+/*
+ * @brief:	Run FSM
+ * @para:	Index of buzzer
+ * @retval:	none
+ * */
+void buzzer0_fsm(void) {
+	int buzzer_index = 0;
+	switch(buzzer[buzzer_index].buzzerState) {
+	case OFF_STATE:
+		break;
+	case ALARM_STATE:
+		if(timerFlagBuzzerChangeIntensity[buzzer_index]) {
+			// Modify information
+			buzzer[buzzer_index].intensity 				= (buzzer[buzzer_index].intensity + BUZZER_INTENSITY_MODIFY_VALUE);
+			buzzer[buzzer_index].phaseInfo.phaseState 	= 1;
+			buzzer[buzzer_index].phaseInfo.phasePeriod 	= buzzer[buzzer_index].phaseInfo.phasePeriod - BUZZER_PHASE_PERIOD_MODIFY_VALUE;
+			// Set PWM
+			set_buzzer_intensity(buzzer_index, buzzer[buzzer_index].intensity);
+			// Set timer
+#ifdef FUNCTION_TESTING
+			set_timer_buzzer_change_intensity(buzzer_index, BUZZER_INTENSITY_CHANGE_TIMER);
+#else
+			timerFlagBuzzerChangeIntensity[buzzer_index] = 0;
+			sch_add_task(ChangeIntensityOneShot, BUZZER_INTENSITY_CHANGE_TIMER, 0);
+#endif
+		}
+		if(timerFlagBuzzerPhase[buzzer_index]) {
+#ifdef FUNCTION_TESTING
+			set_timer_buzzer_phase(buzzer_index, buzzer[buzzer_index].phaseInfo.phasePeriod);
+#else
+			timerFlagBuzzerPhase[buzzer_index] = 0;
+			sch_add_task(ChangePhaseOneShot, buzzer[buzzer_index].phaseInfo.phasePeriod, 0);
+#endif
+			if(buzzer[buzzer_index].phaseInfo.phaseState) {
+				set_buzzer_intensity(buzzer_index, 0);
+				buzzer[buzzer_index].phaseInfo.phaseState  = 0;
+			}
+			else {
+				set_buzzer_intensity(buzzer_index, buzzer[buzzer_index].intensity);
+				buzzer[buzzer_index].phaseInfo.phaseState = 1;
+			}
+		}
+		break;
+	}
+}
 
 
-void setTimerBuzzer(uint8_t buzzer_index, int time) {
-    timer_counter_buzzer[buzzer_index] = time * FREQUENCY_OF_TIM3 / 1000.0;
-    timer_flag_buzzer[buzzer_index] = 0;
+
+void set_timer_buzzer_change_intensity(uint8_t buzzer_index, int timer) {
+	timerCounterBuzzerChangeIntensity[buzzer_index] = timer  * FREQUENCY_OF_TIM/1000;
+	timerFlagBuzzerChangeIntensity[buzzer_index]	= 0;
 }
-void setTimerBuzzerState(uint8_t buzzer_index, int time) {
-    timer_counter_buzzerState[buzzer_index] = time * FREQUENCY_OF_TIM3 / 1000.0;
-    timer_flag_buzzerState[buzzer_index] = 0;
+
+void set_timer_buzzer_phase(uint8_t buzzer_index, int timer) {
+	timerCounterBuzzerPhase[buzzer_index] = timer  * FREQUENCY_OF_TIM/1000;
+	timerFlagBuzzerPhase[buzzer_index]	= 0;
 }
-void timerBuzzerInit() {
-    for(int index = 0; index < NUMBER_OF_BUZZER; index++) {
-        setTimerBuzzer(index, BUZZER_SLOW_PERIOD * ((BUZZER_SLOW_PERIOD / 100.0)));
-        setTimerBuzzerState(index, BUZZER_CHANGE_STATE_PERIOD);
-    }
+
+void buzzer_timer_run(void) {
+
+	// Processing Buzzer[0]
+	if(is_buzzer_alarm(0)) {
+		timerCounterBuzzerPhase[0]--;
+		if(timerCounterBuzzerPhase[0] == 0) {
+			timerFlagBuzzerPhase[0] = 1;
+		}
+		timerCounterBuzzerChangeIntensity[0]--;
+		if(timerCounterBuzzerChangeIntensity[0] == 0) {
+			timerFlagBuzzerChangeIntensity[0] = 1;
+		}
+	}
+
 }
-void timerBuzzerRun(void) {
-    for(int buzzer_index = 0; buzzer_index < NUMBER_OF_BUZZER; buzzer_index++) {
-        if(is_buzzer_on(buzzer_index)) {    //
-            timer_counter_buzzer[buzzer_index]--;
-            if(timer_counter_buzzer[buzzer_index] == 0) {
-                timer_flag_buzzer[buzzer_index] = 1;
-            }
-            timer_counter_buzzerState[buzzer_index]--;
-            if(timer_counter_buzzerState[buzzer_index] == 0) {
-                timer_flag_buzzerState[buzzer_index] = 1;
-            }
-        }
-    }
-}
+
+
+

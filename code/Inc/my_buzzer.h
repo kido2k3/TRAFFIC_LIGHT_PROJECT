@@ -1,48 +1,48 @@
 /*
  * my_buzzer.h
  *
- *  Created on: Nov 23, 2023
+ *  Created on: Nov 27, 2023
  *      Author: atfox
  */
 
 #ifndef INC_MY_BUZZER_H_
 #define INC_MY_BUZZER_H_
 
-#include<stdint.h>
 #include "my_define.h"
+#include "my_system.h"
+//#include "my_scheduler.h"
 
-#define NUMBER_OF_BUZZER            1
+//#define FUNCTION_TESTING		// For single testing
 
-#define FREQUENCY_OF_TIM3           1000            
-/*          Buzzer parameter            */
-// Below unit <ms>
-#define BUZZER_CHANGE_STATE_PERIOD  1000	/* = PEDESTRIAN_TIMER / 5(state) */
-#define BUZZER_SLOW_PERIOD          500
-#define BUZZER_ALMOSTSLOW_PERIOD    250
-#define BUZZER_MEDIUM_PERIOD        125
-#define BUZZER_ALMOSTFAST_PERIOD    60
-#define BUZZER_FAST_PERIOD          30
-// Below unit <%>
-#define BUZZER_SLOW_DUTYCYCLE       20
-#define BUZZER_ALMOSTSLOW_DUTYCYCLE 40
-#define BUZZER_MEDIUM_DUTYCYCLE     50
-#define BUZZER_ALMOSTFAST_DUTYCYCLE 70
-#define BUZZER_FAST_DUTYCYCLE       90
+#define NUMBER_OF_BUZZER 		1
+
+#define FREQUENCY_OF_TIM					1000// Use timer2 to count Phase period
+
+#define BUZZER_ON_DURATION					5000
+
+#define BUZZER_INTENSITY_CHANGE_TIMER		1000// Unit <ms>
+#define BUZZER_INTENSITY_CHANGE_STATE		BUZZER_ON_DURATION / BUZZER_INTENSITY_CHANGE_TIMER
+
+#define BUZZER_INTENSITY_MAX 				95	// Base on duty-cycle
+#define BUZZER_INTENSITY_MIN 				5	// Base on duty-cycle
+#define BUZZER_INTENSITY_MODIFY_VALUE 		(BUZZER_INTENSITY_MAX - BUZZER_INTENSITY_MIN) / BUZZER_INTENSITY_CHANGE_STATE
+
+#define BUZZER_PHASE_PERIOD_MAX				200	// Unit <ms>
+#define BUZZER_PHASE_PERIOD_MIN				20	// Unit <ms>
+#define BUZZER_PHASE_PERIOD_MODIFY_VALUE 	(BUZZER_PHASE_PERIOD_MAX - BUZZER_PHASE_PERIOD_MIN) / BUZZER_INTENSITY_CHANGE_STATE// Unit <ms>
 
 
-void buzzer_init(void);                 /* Initial FSM */
+void buzzer_init(void);
+void buzzer_turn_on(uint8_t buzzer_index);
+void buzzer_turn_off(uint8_t buzzer_index);
+void buzzer0_fsm(void);
 
-void buzzer_processing(uint8_t index); /* Place in while(1) */
-
-void buzzer_turnOn(uint8_t index);      /* Call in Traffic-Light FSM */
-void buzzer_turnOff(uint8_t index);     /* Call in Traffic-Light FSM */
-
-void timerBuzzerInit();                 /* Initial Timer */
-
-int timer_counter_buzzer[NUMBER_OF_BUZZER];   /* INIT VALUE: setTimerBuzzer(0, (BUZZER_SLOW_PERIOD * ((BUZZER_SLOW_PERIOD / 100.0))) */
-int timer_flag_buzzer[NUMBER_OF_BUZZER];
-int timer_counter_buzzerState[NUMBER_OF_BUZZER];   /* INIT VALUE: setTimerBuzzerState(0, BUZZER_CHANGE_STATE_PERIOD) */
-int timer_flag_buzzerState[NUMBER_OF_BUZZER];
-void timerBuzzerRun(void);              /* Timer run */
+int timerCounterBuzzerPhase[NUMBER_OF_BUZZER];
+int timerFlagBuzzerPhase[NUMBER_OF_BUZZER];
+int timerCounterBuzzerChangeIntensity[NUMBER_OF_BUZZER];
+int timerFlagBuzzerChangeIntensity[NUMBER_OF_BUZZER];
+void set_timer_buzzer_change_intensity(uint8_t buzzer_index, int timer);
+void set_timer_buzzer_phase(uint8_t buzzer_index, int timer);
+void buzzer_timer_run(void);
 
 #endif /* INC_MY_BUZZER_H_ */

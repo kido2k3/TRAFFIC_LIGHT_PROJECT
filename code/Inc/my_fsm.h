@@ -9,11 +9,11 @@
 #define INC_MY_FSM_H_
 
 #include <my_button.h>
+#include <my_buzzer.h>
 #include <my_led.h>
 #include "my_define.h"
 #include "my_scheduler.h"
-#include "my_buzzer.h"
-
+#include "my_uart.h"
 
 void fsm(void);
 void task_scan7seg(void);

@@ -14,8 +14,10 @@
 #include"my_buzzer.h"
 #include"my_led.h"
 #include"my_fsm.h"
+#include"my_uart.h"
 
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
 void init(void);
 void loop(void);
 #endif /* INC_MY_SYSTEM_H_ */

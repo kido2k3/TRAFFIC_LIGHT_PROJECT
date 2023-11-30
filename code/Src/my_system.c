@@ -11,9 +11,11 @@
 void init(void)
 {
 	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	button_init();
-	buzzer_init(); 
+	buzzer_init();
 	init_led();
+	uart_Init();
 	sch_add_task(button_read, 0, READ_BUTTON_TIME);
 }
 
@@ -28,9 +30,4 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		sch_update();
 	}
-	// Todo: Enable htim3
-	// if (htim->Instance == htim3.Instance)
-	// {
-	// 	timerBuzzerRun();
-	// }
 }
