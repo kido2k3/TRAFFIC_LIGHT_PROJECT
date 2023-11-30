@@ -15,7 +15,7 @@
 #define BUTTON1_PORT GPIOA
 #define BUTTON1 GPIO_PIN_1
 #define BUTTON2_PORT GPIOA
-#define BUTTON2 GPIO_PIN_4
+#define BUTTON2 GPIO_PIN_5
 #define BUTTON3_PORT GPIOB
 #define BUTTON3 GPIO_PIN_0
 // define pedestrian button - pull up

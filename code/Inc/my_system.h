@@ -13,6 +13,7 @@
 #include"my_button.h"
 #include"my_led.h"
 #include"my_fsm.h"
+#include"my_uart.h"
 
 extern TIM_HandleTypeDef htim2;
 void init(void);

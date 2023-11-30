@@ -13,6 +13,7 @@ void init(void)
 	HAL_TIM_Base_Start_IT(&htim2);
 	button_init();
 	init_led();
+	uart_Init();
 	sch_add_task(button_read, 0, READ_BUTTON_TIME);
 }
 
