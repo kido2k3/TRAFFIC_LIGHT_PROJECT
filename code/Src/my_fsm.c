@@ -31,7 +31,7 @@ enum {
 #define RED_TIME_INIT 			5
 #define GREEN_TIME_INIT 		4
 #define YELLOW_TIME_INIT 		1
-#define PEDESTRIAN_TIMER		30
+#define PEDESTRIAN_TIMER		10
 
 unsigned red_time = RED_TIME_INIT;
 unsigned green_time = GREEN_TIME_INIT;
@@ -678,7 +678,7 @@ void task_increase_over_time(void) {
 void task_countdown_pedestrian_timer(void) {
 	if (pedestrian_timer) {
 		pedestrian_timer--;
-		if(pedestrian_timer == BUZZER_ON_DURATION) {
+		if(pedestrian_timer == BUZZER_ON_DURATION / ONE_SECOND) {	// BUZZER_ON_DURATION is ms unit
 			flag_pedestrian_buzzer_on = 1;
 		}
 	}
