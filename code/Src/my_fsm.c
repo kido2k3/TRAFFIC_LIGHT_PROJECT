@@ -31,7 +31,7 @@ enum {
 #define RED_TIME_INIT 			5
 #define GREEN_TIME_INIT 		4
 #define YELLOW_TIME_INIT 		1
-#define PEDESTRIAN_TIMER		10
+#define PEDESTRIAN_TIMER		30
 
 unsigned red_time = RED_TIME_INIT;
 unsigned green_time = GREEN_TIME_INIT;
