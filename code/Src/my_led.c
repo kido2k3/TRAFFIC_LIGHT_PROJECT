@@ -25,16 +25,16 @@ void init_traffic_light(void);
  * 			red, green - state of red and green led (1: on, 0: off)
  * @retval:	none*/
 void control_traffic_light(unsigned i, GPIO_PinState red, GPIO_PinState green) {
-	HAL_GPIO_WritePin(traffic_light[i].red_port, traffic_light[i].red, !red);
-	HAL_GPIO_WritePin(traffic_light[i].green_port, traffic_light[i].green, !green);
+	HAL_GPIO_WritePin(traffic_light[i].red_port, traffic_light[i].red, red);
+	HAL_GPIO_WritePin(traffic_light[i].green_port, traffic_light[i].green, green);
 }
 /*
  * @brief: 	display pedestrian light function
  * @para:	red, green - state of red and green led (1: on, 0: off)
  * @retval:	none*/
 void control_pedestrian_light(GPIO_PinState red, GPIO_PinState green) {
-	HAL_GPIO_WritePin(pedestrian_light.red_port, pedestrian_light.red, !red);
-	HAL_GPIO_WritePin(pedestrian_light.green_port, pedestrian_light.green, !green);
+	HAL_GPIO_WritePin(pedestrian_light.red_port, pedestrian_light.red, red);
+	HAL_GPIO_WritePin(pedestrian_light.green_port, pedestrian_light.green, green);
 }
 void init_led(void) {
 	init_traffic_light();
