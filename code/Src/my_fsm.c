@@ -388,6 +388,7 @@ bool button0_fsm(void) {
 			light_pre_st = light_st;
 			control_pedestrian_light(0, 0);
 			pedestrian_timer = 0;
+			bz_st = BUZZER_STABLE_OFF;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
 				light_st = RED_ADJUSTMENT;
@@ -435,6 +436,7 @@ bool button2_fsm(void) {
 		if (is_button_pressed(2) == 1) {
 			// to do
 			light_pre_st = light_st;
+			bz_st = BUZZER_STABLE_OFF;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
 				light_st = MANUALLY_SET;
