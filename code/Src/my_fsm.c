@@ -28,6 +28,9 @@ enum {
 enum {
 	ON, OFF
 } /* state variable of single led*/led_st, pedestrian_st = OFF;
+enum {
+	BUZZER_ON, BUZZER_OFF, BUZZER_STABLE_OFF
+} /* state variable of single led*/bz_st;
 #define RED_TIME_INIT 			5
 #define GREEN_TIME_INIT 		4
 #define YELLOW_TIME_INIT 		1
@@ -50,6 +53,7 @@ bool flag_toggle_led = 1;
 bool flag_countdown = 1;
 bool flag_increase_over_time = 1;
 bool flag_pedestrian_on = 1;
+bool flag_buzzer = 1;
 
 bool button0_fsm(void);
 bool button1_fsm(void);
@@ -57,11 +61,14 @@ bool button2_fsm(void);
 bool button3_fsm(void); // pedestrian button fsm
 bool manually_change_fsm(void);
 bool manually_set_fsm(void);
+void buzzer_fsm(void);
 void increase_value(void);
 void task_toggle_led(void);
 void task_countdown_1sec(void);
 void task_increase_over_time(void);
 void task_countdown_pedestrian_timer(void);
+void task_buzzer_on(void);
+void task_buzzer_off(void);
 void fsm_led(void);
 void traffic_light_fsm(void);
 void manually_traffic_state(void);
@@ -78,23 +85,22 @@ void fsm(void) {
 			control_traffic_light(0, 0, 0);
 			control_traffic_light(1, 0, 0);
 		} else {
-			traffic_light_fsm();
 			// decrease timer every 1s
 			if (flag_countdown == 1) {
 				flag_countdown = 0;
-				uart_SendTimeTraffic(0, traffic_light_timer1);
-				uart_SendTimeTraffic(1, traffic_light_timer2);
 				sch_add_task(task_countdown_1sec, ONE_SECOND, 0);
 			}
+			traffic_light_fsm();
 		}
-		if (!pedestrian_timer) {
+		if(!pedestrian_timer){
+			bz_st = BUZZER_STABLE_OFF;
 			control_pedestrian_light(0, 0);
-		} else if (pedestrian_timer) {
+		} else if(pedestrian_timer){
 			if (flag_pedestrian_on) {
 				flag_pedestrian_on = 0;
 				sch_add_task(task_countdown_pedestrian_timer, ONE_SECOND, 0);
 			}
-			switch (tl_st) {
+			switch(tl_st){
 			case RED_GREEN:
 				control_pedestrian_light(0, 1);
 				break;
@@ -111,6 +117,7 @@ void fsm(void) {
 				break;
 			}
 		}
+		buzzer_fsm();
 		// transition to adjustment mode
 		button0_fsm();
 		// transistion to manual setting mode
@@ -177,46 +184,34 @@ void fsm(void) {
 	case INCREASE_BY_1:
 		// increase the time value based-on previous state (short-pressed)
 		increase_value();
-		switch (light_pre_st) {
-		case RED_ADJUSTMENT:
-			uart_SendMode(2);
-			uart_SendBufferRed(red_time_buffer);
-			break;
-		case YELLOW_ADJUSTMENT:
-			uart_SendMode(3);
-			uart_SendBufferYellow(yellow_time_buffer);
-			break;
-		case GREEN_ADJUSTMENT:
-			uart_SendMode(4);
-			uart_SendBufferGreen(green_time_buffer);
-			break;
-		default:
-			break;
-		}
 		light_st = light_pre_st;
 		light_pre_st = INCREASE_BY_1;
 		break;
 	case INCREASE_BY_1_OVER_TIME:
 		// increase the time value every 0.25s based-on previous state (short-pressed)
+		if (light_pre_st == RED_ADJUSTMENT) {
 
+		} else if (light_pre_st == YELLOW_ADJUSTMENT) {
+
+		} else if (light_pre_st == GREEN_ADJUSTMENT) {
+
+		}
 		if (flag_increase_over_time == 1) {
-
 			flag_increase_over_time = 0;
 			sch_add_task(task_increase_over_time, INCREASE_TIME, 0);
-
 		}
 		button1_fsm();
 		break;
 	case MANUALLY_SET:
 		manually_traffic_state();
-		if (!pedestrian_timer) {
+		if(!pedestrian_timer){
 			control_pedestrian_light(0, 0);
-		} else if (pedestrian_timer) {
+		} else if(pedestrian_timer){
 			if (flag_pedestrian_on) {
 				flag_pedestrian_on = 0;
 				sch_add_task(task_countdown_pedestrian_timer, ONE_SECOND, 0);
 			}
-			switch (man_tl_st) {
+			switch(man_tl_st){
 			case RED_GREEN:
 				control_pedestrian_light(0, 1);
 				break;
@@ -395,22 +390,13 @@ bool button0_fsm(void) {
 			pedestrian_timer = 0;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
-				red_time_buffer = red_time;
-				yellow_time_buffer = yellow_time;
-				green_time_buffer = green_time;
 				light_st = RED_ADJUSTMENT;
-				uart_SendMode(2);
-				uart_SendBufferRed(red_time_buffer);
 				break;
 			case RED_ADJUSTMENT:
 				light_st = YELLOW_ADJUSTMENT;
-				uart_SendMode(3);
-				uart_SendBufferYellow(yellow_time_buffer);
 				break;
 			case YELLOW_ADJUSTMENT:
 				light_st = GREEN_ADJUSTMENT;
-				uart_SendMode(4);
-				uart_SendBufferGreen(green_time_buffer);
 				break;
 			case GREEN_ADJUSTMENT:
 				light_st = TRAFFIC_LIGHT;
@@ -628,6 +614,33 @@ void task_toggle_led(void) {
 }
 
 /*
+ * @brief:	finite state machine to control behavior of buzzer
+ * @para:	none
+ * @retval:	none
+ * */
+void buzzer_fsm(void){
+	switch(bz_st){
+	case BUZZER_ON:
+		if(flag_buzzer){
+			flag_buzzer = 0;
+			sch_add_task(task_buzzer_on, buzzer_getToggle_time(), 0);
+			bz_st = BUZZER_OFF;
+		}
+		break;
+	case BUZZER_OFF:
+		if(flag_buzzer){
+			flag_buzzer = 0;
+			sch_add_task(task_buzzer_off, buzzer_getToggle_time(), 0);
+			bz_st = BUZZER_ON;
+		}
+		break;
+	case BUZZER_STABLE_OFF:
+		buzzer_off();
+		break;
+	}
+}
+
+/*
  * @brief:	countdown for 1 second
  * @para:	none
  * @retval:	1 - successful
@@ -638,6 +651,15 @@ void task_countdown_1sec(void) {
 		traffic_light_timer1--;
 	if (traffic_light_timer2 > 0)
 		traffic_light_timer2--;
+	if(tl_st == RED_GREEN && traffic_light_timer1 < 5){
+			bz_st = BUZZER_ON;
+		}
+	if(tl_st == RED_GREEN && traffic_light_timer1 < 5){
+		buzzer_calculation(traffic_light_timer1);
+	}
+	else{
+		bz_st = BUZZER_STABLE_OFF;
+	}
 	flag_countdown = 1;
 }
 /*
@@ -649,13 +671,6 @@ void task_countdown_1sec(void) {
 void task_increase_over_time(void) {
 	increase_value();
 	flag_increase_over_time = 1;
-	if (light_pre_st == RED_ADJUSTMENT) {
-		uart_SendBufferRed(red_time_buffer);
-	} else if (light_pre_st == YELLOW_ADJUSTMENT) {
-		uart_SendBufferYellow(yellow_time_buffer);
-	} else if (light_pre_st == GREEN_ADJUSTMENT) {
-		uart_SendBufferGreen(green_time_buffer);
-	}
 }
 /*
  * @brief:	countdown pedestrian counter each 1 second
@@ -668,4 +683,22 @@ void task_countdown_pedestrian_timer(void) {
 		pedestrian_timer--;
 	}
 	flag_pedestrian_on = 1;
+}
+/*
+ * @brief:	turn on buzzer a period equal to get_toggle_time()
+ * @para:	none
+ * @retval:	none
+ * */
+void task_buzzer_on(void){
+	buzzer_on();
+	flag_buzzer = 1;
+}
+/*
+ * @brief:	turn off buzzer a period equal to get_toggle_time()
+ * @para:	none
+ * @retval:	none
+ * */
+void task_buzzer_off(void){
+	buzzer_off();
+	flag_buzzer = 1;
 }

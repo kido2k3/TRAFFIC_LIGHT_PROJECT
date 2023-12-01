@@ -14,6 +14,7 @@ void init(void)
 	button_init();
 	init_led();
 	uart_Init();
+	buzzer_init();
 	sch_add_task(button_read, 0, READ_BUTTON_TIME);
 }
 
