@@ -1,7 +1,7 @@
 /*
  * my_buzzer.h
  *
- *  Created on: Nov 27, 2023
+ *  Created on: Dec 1, 2023
  *      Author: atfox
  */
 
@@ -9,40 +9,27 @@
 #define INC_MY_BUZZER_H_
 
 #include "my_define.h"
-#include "my_system.h"
-//#include "my_scheduler.h"
 
-//#define FUNCTION_TESTING		// For single testing
+#define BUZZER_MODE_AMOUNT 		5
 
-#define NUMBER_OF_BUZZER 		1
+#define BUZZER_INTENSITY_MAX	100
+#define BUZZER_INTENSITY_MIN	0
+#define BUZZER_INTENSITY_MDF	((BUZZER_INTENSITY_MAX - BUZZER_INTENSITY_MIN) / BUZZER_MODE_AMOUNT)
 
-#define FREQUENCY_OF_TIM					1000// Use timer2 to count Phase period
-
-#define BUZZER_ON_DURATION					5000
-
-#define BUZZER_INTENSITY_CHANGE_TIMER		1000// Unit <ms>
-#define BUZZER_INTENSITY_CHANGE_STATE		(BUZZER_ON_DURATION / BUZZER_INTENSITY_CHANGE_TIMER)
-
-#define BUZZER_INTENSITY_MAX 				95	// Base on duty-cycle
-#define BUZZER_INTENSITY_MIN 				5	// Base on duty-cycle
-#define BUZZER_INTENSITY_MODIFY_VALUE 		((BUZZER_INTENSITY_MAX - BUZZER_INTENSITY_MIN) / BUZZER_INTENSITY_CHANGE_STATE)
-
-#define BUZZER_PHASE_PERIOD_MAX				400	// Unit <ms>
-#define BUZZER_PHASE_PERIOD_MIN				20	// Unit <ms>
-#define BUZZER_PHASE_PERIOD_MODIFY_VALUE 	((BUZZER_PHASE_PERIOD_MAX - BUZZER_PHASE_PERIOD_MIN) / BUZZER_INTENSITY_CHANGE_STATE)// Unit <ms>
-
-
+// Param: None
+// Proc : Start PWM of Channel_1
 void buzzer_init(void);
-void buzzer_turn_on(uint8_t buzzer_index);
-void buzzer_turn_off(uint8_t buzzer_index);
-void buzzer0_fsm(void);
 
-int timerCounterBuzzerPhase[NUMBER_OF_BUZZER];
-int timerFlagBuzzerPhase[NUMBER_OF_BUZZER];
-int timerCounterBuzzerChangeIntensity[NUMBER_OF_BUZZER];
-int timerFlagBuzzerChangeIntensity[NUMBER_OF_BUZZER];
-void set_timer_buzzer_change_intensity(uint8_t buzzer_index, int timer);
-void set_timer_buzzer_phase(uint8_t buzzer_index, int timer);
-void buzzer_timer_run(void);
+// Param: None
+// Proc : Set current_intensity to PWM_pin
+void buzzer_on(void);
+
+// Param: None
+// Proc : Set LOW to PWM_pin (this function do not modify current_intensity)
+void buzzer_off(void);
+
+// Param: mode_range in [0:BUZZER_MODE_AMOUNT - 1]
+// Proc : Set current_intensity = mode * BUZZER_INTENSITY_MDF
+void buzzer_calculation(uint8_t mode);
 
 #endif /* INC_MY_BUZZER_H_ */
