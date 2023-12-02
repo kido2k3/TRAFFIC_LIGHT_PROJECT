@@ -88,12 +88,14 @@ void fsm(void) {
 			// decrease timer every 1s
 			if (flag_countdown == 1) {
 				flag_countdown = 0;
+				uart_SendTimeTraffic(0, traffic_light_timer1);
+				uart_SendTimeTraffic(1, traffic_light_timer2);
 				sch_add_task(task_countdown_1sec, ONE_SECOND, 0);
 			}
 			traffic_light_fsm();
 		}
 		if(!pedestrian_timer){
-			buzzer_calculation(5);
+			buzzer_calculation(6);
 			buzzer_off();
 
 			control_pedestrian_light(0, 0);
@@ -113,12 +115,12 @@ void fsm(void) {
 				break;
 			case GREEN_RED:
 				control_pedestrian_light(1, 0);
-				buzzer_calculation(5);
+				buzzer_calculation(6);
 				buzzer_off();
 				break;
 			case YELLOW_RED:
 				control_pedestrian_light(1, 0);
-				buzzer_calculation(5);
+				buzzer_calculation(6);
 				buzzer_off();
 				break;
 			default:
@@ -189,11 +191,27 @@ void fsm(void) {
 		light_pre_st = SET_VALUE;
 		break;
 	case INCREASE_BY_1:
-		// increase the time value based-on previous state (short-pressed)
-		increase_value();
-		light_st = light_pre_st;
-		light_pre_st = INCREASE_BY_1;
-		break;
+			// increase the time value based-on previous state (short-pressed)
+			increase_value();
+			switch (light_pre_st) {
+			case RED_ADJUSTMENT:
+				uart_SendMode(2);
+				uart_SendBufferRed(red_time_buffer);
+				break;
+			case YELLOW_ADJUSTMENT:
+				uart_SendMode(3);
+				uart_SendBufferYellow(yellow_time_buffer);
+				break;
+			case GREEN_ADJUSTMENT:
+				uart_SendMode(4);
+				uart_SendBufferGreen(green_time_buffer);
+				break;
+			default:
+				break;
+			}
+			light_st = light_pre_st;
+			light_pre_st = INCREASE_BY_1;
+			break;
 	case INCREASE_BY_1_OVER_TIME:
 		// increase the time value every 0.25s based-on previous state (short-pressed)
 		if (light_pre_st == RED_ADJUSTMENT) {
@@ -397,13 +415,22 @@ bool button0_fsm(void) {
 			pedestrian_timer = 0;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
+				red_time_buffer = red_time;
+				yellow_time_buffer = yellow_time;
+				green_time_buffer = green_time;
 				light_st = RED_ADJUSTMENT;
+				uart_SendMode(2);
+				uart_SendBufferRed(red_time_buffer);
 				break;
 			case RED_ADJUSTMENT:
 				light_st = YELLOW_ADJUSTMENT;
+				uart_SendMode(3);
+				uart_SendBufferYellow(yellow_time_buffer);
 				break;
 			case YELLOW_ADJUSTMENT:
 				light_st = GREEN_ADJUSTMENT;
+				uart_SendMode(4);
+				uart_SendBufferGreen(green_time_buffer);
 				break;
 			case GREEN_ADJUSTMENT:
 				light_st = TRAFFIC_LIGHT;
@@ -666,6 +693,13 @@ void task_countdown_1sec(void) {
 void task_increase_over_time(void) {
 	increase_value();
 	flag_increase_over_time = 1;
+	if (light_pre_st == RED_ADJUSTMENT) {
+		uart_SendBufferRed(red_time_buffer);
+	} else if (light_pre_st == YELLOW_ADJUSTMENT) {
+		uart_SendBufferYellow(yellow_time_buffer);
+	} else if (light_pre_st == GREEN_ADJUSTMENT) {
+		uart_SendBufferGreen(green_time_buffer);
+	}
 }
 /*
  * @brief:	countdown pedestrian counter each 1 second
@@ -685,7 +719,7 @@ void task_countdown_pedestrian_timer(void) {
  * @retval:	none
  * */
 void task_buzzer_on(void){
-	if(traffic_light_timer1 <= 5){
+	if(traffic_light_timer1 <= 6){
 		buzzer_calculation(traffic_light_timer1);
 	}
 	buzzer_on();
