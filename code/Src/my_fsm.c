@@ -30,10 +30,10 @@ enum {
 } /* state variable of single led*/led_st, pedestrian_st = OFF;
 enum {
 	BUZZER_ON, BUZZER_OFF, BUZZER_STABLE_OFF
-} /* state variable of single led*/bz_st;
-#define RED_TIME_INIT 			5
-#define GREEN_TIME_INIT 		4
-#define YELLOW_TIME_INIT 		1
+} /* state variable of single led*/bz_st = BUZZER_OFF;
+#define RED_TIME_INIT 			10
+#define GREEN_TIME_INIT 		8
+#define YELLOW_TIME_INIT 		2
 #define PEDESTRIAN_TIMER		30
 
 unsigned red_time = RED_TIME_INIT;
@@ -93,7 +93,9 @@ void fsm(void) {
 			traffic_light_fsm();
 		}
 		if(!pedestrian_timer){
-			bz_st = BUZZER_STABLE_OFF;
+			buzzer_calculation(5);
+			buzzer_off();
+
 			control_pedestrian_light(0, 0);
 		} else if(pedestrian_timer){
 			if (flag_pedestrian_on) {
@@ -103,21 +105,26 @@ void fsm(void) {
 			switch(tl_st){
 			case RED_GREEN:
 				control_pedestrian_light(0, 1);
+				buzzer_fsm();
 				break;
 			case RED_YELLOW:
 				control_pedestrian_light(0, 1);
+				buzzer_fsm();
 				break;
 			case GREEN_RED:
 				control_pedestrian_light(1, 0);
+				buzzer_calculation(5);
+				buzzer_off();
 				break;
 			case YELLOW_RED:
 				control_pedestrian_light(1, 0);
+				buzzer_calculation(5);
+				buzzer_off();
 				break;
 			default:
 				break;
 			}
 		}
-		buzzer_fsm();
 		// transition to adjustment mode
 		button0_fsm();
 		// transistion to manual setting mode
@@ -388,7 +395,6 @@ bool button0_fsm(void) {
 			light_pre_st = light_st;
 			control_pedestrian_light(0, 0);
 			pedestrian_timer = 0;
-			bz_st = BUZZER_STABLE_OFF;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
 				light_st = RED_ADJUSTMENT;
@@ -436,7 +442,6 @@ bool button2_fsm(void) {
 		if (is_button_pressed(2) == 1) {
 			// to do
 			light_pre_st = light_st;
-			bz_st = BUZZER_STABLE_OFF;
 			switch (light_st) {
 			case TRAFFIC_LIGHT:
 				light_st = MANUALLY_SET;
@@ -623,6 +628,10 @@ void task_toggle_led(void) {
 void buzzer_fsm(void){
 	switch(bz_st){
 	case BUZZER_ON:
+//		if(tl_st != RED_GREEN || light_st != TRAFFIC_LIGHT){
+//			sch_add_task(task_buzzer_on, ONE_SECOND, 0);
+//			bz_st = BUZZER_STABLE_OFF;
+//		}
 		if(flag_buzzer){
 			flag_buzzer = 0;
 			sch_add_task(task_buzzer_on, buzzer_getToggle_time(), 0);
@@ -630,15 +639,23 @@ void buzzer_fsm(void){
 		}
 		break;
 	case BUZZER_OFF:
+//		if(tl_st != RED_GREEN || light_st != TRAFFIC_LIGHT){
+//			bz_st = BUZZER_STABLE_OFF;
+//		}
 		if(flag_buzzer){
 			flag_buzzer = 0;
 			sch_add_task(task_buzzer_off, buzzer_getToggle_time(), 0);
 			bz_st = BUZZER_ON;
 		}
 		break;
-	case BUZZER_STABLE_OFF:
-		buzzer_off();
-		break;
+//	case BUZZER_STABLE_OFF:
+//		buzzer_off();
+//		if(tl_st == RED_GREEN && traffic_light_timer1 == 5 && light_st == TRAFFIC_LIGHT){
+//			flag_buzzer = 0;
+//			sch_add_task(task_buzzer_on, 0, 0);
+//			bz_st = BUZZER_ON;
+//		}
+//		break;
 	}
 }
 
@@ -653,15 +670,6 @@ void task_countdown_1sec(void) {
 		traffic_light_timer1--;
 	if (traffic_light_timer2 > 0)
 		traffic_light_timer2--;
-	if(tl_st == RED_GREEN && traffic_light_timer1 < 5){
-			bz_st = BUZZER_ON;
-		}
-	if(tl_st == RED_GREEN && traffic_light_timer1 < 5){
-		buzzer_calculation(traffic_light_timer1);
-	}
-	else{
-		bz_st = BUZZER_STABLE_OFF;
-	}
 	flag_countdown = 1;
 }
 /*
@@ -692,6 +700,9 @@ void task_countdown_pedestrian_timer(void) {
  * @retval:	none
  * */
 void task_buzzer_on(void){
+	if(/*tl_st == RED_GREEN &&*/ traffic_light_timer1 <= 5){
+		buzzer_calculation(traffic_light_timer1);
+	}
 	buzzer_on();
 	flag_buzzer = 1;
 }
